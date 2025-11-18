@@ -22,6 +22,29 @@ mod settle;
 mod state;
 mod types;
 
+// Advanced features (50-feature implementation)
+mod websocket;
+mod admin;
+mod replay_protection;
+mod fraud_proofs;
+mod query_engine;
+mod snapshot;
+mod parallel_executor;
+mod batching;
+mod simulation;
+mod network_monitor;
+mod validator;
+mod governance;
+mod emergency;
+mod tracing;
+mod profiler;
+mod contracts;
+mod bridge;
+mod oracle;
+mod dex;
+mod meta_tx;
+mod tx_pool;
+
 use events::EventBus;
 use fees::{FeeMarket, GasPriceOracle};
 use mempool::Mempool;
