@@ -1,5 +1,4 @@
-use solana_sdk::{hash::hashv, keccak::{Hash, Hasher}};
-use std::collections::HashMap;
+use crate::hash_utils::{Hash, Hasher};
 
 /// Merkle tree implementation for state root calculation
 #[derive(Debug, Clone)]
@@ -35,10 +34,10 @@ impl MerkleTree {
                     current_level[i]
                 };
 
-                let mut hasher = Hasher::default();
-                hasher.hash(left.as_ref());
-                hasher.hash(right.as_ref());
-                let parent = hasher.result();
+                let mut hasher = Hasher::new();
+                hasher.update(left.as_bytes());
+                hasher.update(right.as_bytes());
+                let parent = hasher.finalize();
                 next_level.push(parent);
             }
 
@@ -46,12 +45,16 @@ impl MerkleTree {
             current_level = next_level;
         }
 
-        MerkleTree { leaves, nodes }
+        MerkleTree {
+            leaves: nodes[0].clone(),
+            nodes,
+        }
     }
 
     /// Get the root hash of the Merkle tree
     pub fn root(&self) -> Hash {
-        self.nodes.last()
+        self.nodes
+            .last()
             .and_then(|level| level.first())
             .copied()
             .unwrap_or_default()
@@ -88,16 +91,16 @@ impl MerkleTree {
         let mut current_hash = leaf;
 
         for sibling in proof {
-            let mut hasher = Hasher::default();
+            let mut hasher = Hasher::new();
             // Determine order based on hash comparison
-            if current_hash.as_ref() <= sibling.as_ref() {
-                hasher.hash(current_hash.as_ref());
-                hasher.hash(sibling.as_ref());
+            if current_hash.as_bytes() <= sibling.as_bytes() {
+                hasher.update(current_hash.as_bytes());
+                hasher.update(sibling.as_bytes());
             } else {
-                hasher.hash(sibling.as_ref());
-                hasher.hash(current_hash.as_ref());
+                hasher.update(sibling.as_bytes());
+                hasher.update(current_hash.as_bytes());
             }
-            current_hash = hasher.result();
+            current_hash = hasher.finalize();
         }
 
         current_hash == root
@@ -110,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_merkle_tree_single_leaf() {
-        let leaf = Hash::new(&[1u8; 32]);
+        let leaf = Hash::new(b"test");
         let tree = MerkleTree::new(vec![leaf]);
         assert_eq!(tree.root(), leaf);
     }
@@ -118,10 +121,10 @@ mod tests {
     #[test]
     fn test_merkle_tree_multiple_leaves() {
         let leaves = vec![
-            Hash::new(&[1u8; 32]),
-            Hash::new(&[2u8; 32]),
-            Hash::new(&[3u8; 32]),
-            Hash::new(&[4u8; 32]),
+            Hash::new(b"leaf1"),
+            Hash::new(b"leaf2"),
+            Hash::new(b"leaf3"),
+            Hash::new(b"leaf4"),
         ];
         let tree = MerkleTree::new(leaves.clone());
 
@@ -132,10 +135,10 @@ mod tests {
     #[test]
     fn test_merkle_proof() {
         let leaves = vec![
-            Hash::new(&[1u8; 32]),
-            Hash::new(&[2u8; 32]),
-            Hash::new(&[3u8; 32]),
-            Hash::new(&[4u8; 32]),
+            Hash::new(b"leaf1"),
+            Hash::new(b"leaf2"),
+            Hash::new(b"leaf3"),
+            Hash::new(b"leaf4"),
         ];
         let tree = MerkleTree::new(leaves.clone());
 
